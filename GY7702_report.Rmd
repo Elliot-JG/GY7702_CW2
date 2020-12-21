@@ -21,21 +21,24 @@ library(pastecs)
 library(knitr)
 library(tinytex)
 library(kableExtra)
+library(gridExtra)
 ```
 
 # Load in the data 
 
-```{r, echo=FALSE, message=FALSE}
+```{r, message=FALSE, warning = FALSE}
 
 # Extract 
 unzip("Data/GY7702_2020-21_Assignment_2--data_pack.zip", exdir = "Data")
 
 # Load
 OAC_2011 <- 
-  readr::read_csv("Data/GY7702_2020-21_Assignment_2--data_pack/2011_OAC_Raw_kVariables.csv")
+  readr::read_csv(
+    "Data/GY7702_2020-21_Assignment_2--data_pack/2011_OAC_Raw_kVariables.csv")
 
 OAC_2011_meta <- 
-  readr::read_csv("Data/GY7702_2020-21_Assignment_2--data_pack/OA11_LSOA11_MSOA11_LAD11_EW_LUv2.csv")
+  readr::read_csv(
+    "Data/GY7702_2020-21_Assignment_2--data_pack/OA11_LSOA11_MSOA11_LAD11_EW_LUv2.csv")
 
 
 ```
@@ -45,7 +48,7 @@ OAC_2011_meta <-
 
 ## Joining the data sets
 
-```{r}
+```{r, message = FALSE}
 # Rename the column 'OA11CD' to OA so it matches the same column in OAC_2011 
 OAC_2011_meta <- OAC_2011_meta %>% 
   dplyr::rename(
@@ -59,7 +62,7 @@ complete_OAC <-
 ```
 
 ## Subsetting 
-* Selecting my LAD
+* Selecting assigned LAD
 * Selecting the appropriate variables
 ```{r}
 # Subset data based off LAD11NM = Wellingborough
@@ -67,7 +70,7 @@ wellingborough <- complete_OAC %>%
   dplyr::filter(LAD11NM == "Wellingborough")
 
 # Select the appropriate variables, based on their 'VariableCode' 
-wellingborough_stats <- wellingborough %>%
+wellingborough_variables <- wellingborough %>%
   dplyr::select(k004, k009, k010, k027, k031, k041, k046)
 ```
 
@@ -77,12 +80,15 @@ wellingborough_stats <- wellingborough %>%
 
 For this exploratory analysis, we are going to investigate the distribution of part-time employed persons (PTEP) throughout 249 output areas (OA's) in the Local Area District (LAD) of Wellingborough
 
-### Basic histogram for visual histogram 
+#### Basic histogram for visual histogram 
 ```{r}
 wellingborough %>%
   ggplot2::ggplot(aes(x = k046))+
   ggplot2::geom_bar()+
-  scale_x_binned(n.breaks = 15)
+  scale_x_binned(n.breaks = 15)+
+  xlab("Employed persons (16-74 years old) working part-time")+
+  ylab("Frequency")+
+  theme_gray(base_size = 15)
 ```
 An initial assessment suggests that the distribution of PTEPs throughout Wellingborough is normal, that is bell-shaped. 
 In other words, the majority of OA's in Wellingborough have 35-45 PTEPS. Some OA's have as little as 20 and at least one OA has >80 PTEPs. 
@@ -90,9 +96,12 @@ In other words, the majority of OA's in Wellingborough have 35-45 PTEPS. Some OA
 We previously stated that most OA's have 35-45 PTEPs. Due to this, we would expect the average to be around this range. We can check this with 
 
 ```{r}
-wellingborough %>%
+wellingborough_stats <- wellingborough %>%
   dplyr::select(k046)%>%
   pastecs::stat.desc(basic = FALSE, desc = TRUE, norm = FALSE)
+
+kable(wellingborough_stats, format = "latex", booktabs = T) %>%
+  kable_styling(latex_options = c("striped", "scale_up"))
 ```
 
 Note, this can also be achieved with 
@@ -102,7 +111,7 @@ wellingborough%>%
 ```
 Though the code can get lengthy with the addition of more and more statistics   
 
-### Plotting against normal distribution
+#### Plotting against normal distribution
 
 We have seen that the distribution of PTEPs throughout Wellingborough looks normal, with an average (38 PTEPs per OA) tha sits neatly in the middle of the histogram. 
 
@@ -111,11 +120,16 @@ The distribution can be assessed alternatively in a plot that gives insight into
 wellingborough %>%
   ggplot2::ggplot(aes(sample = k046))+
   ggplot2::stat_qq()+
-  ggplot2::stat_qq_line()
+  ggplot2::stat_qq_line(
+    aes(
+      color = "darkred"))+
+  xlab("Theoretical distribution")+
+  ylab("Sample data")+
+  theme_gray(base_size = 15)
 ```
 The function ```stat_qq``` highlights a theoretical, normal distribution with the distribution of the PTEP data. This demonstrates that there are an elevated number of PTEPs at the tails of the distribution. That is, there are a considerable number of OA's with a minimum and maximum number of PTEPs. Additionally, notice the outlier on figure 1 here, >80.   
 
-### Shapiro Wilko test 
+#### Shapiro Wilko test 
 
 After visualising the data, we can quantitively assess if this is indeed a normal distribution or not 
 ```{r}
@@ -125,13 +139,76 @@ wellingborough %>%
 ```
 In the shapiro-wilk test, we set a null hypothesis that the data is normally distributed. The null hypothesis is rejected is the p-value <0.01. That is, there is a <1% of the data being normally distributed.In this case p < 0.01, the data is not normally distributed. 
 
-### Exploring skewness and kurtosis 
+#### Exploring skewness and kurtosis 
 
 We can gain more information on the shape of the data by assessing its skew and kurtosis 
 ```{r}
-wellingborough %>%
+wellingborough_skew <- wellingborough %>%
   dplyr::select(k046)%>%
   pastecs::stat.desc(basic = FALSE, desc = FALSE, norm = TRUE)
+  
+kable(wellingborough_skew, format = "latex", booktabs = T) %>%
+kable_styling(latex_options = c("striped", "scale_up"))
 ```
 
-In this case, a positive skew means the data leans towards the left. The standard error for the skew ```skew.2SE``` also lies outside of the range -1 + 1, meaning the result is significant. A positive kurtosis also means the data has heavy tails. However, this result is not significant as the standard error ```kurt.2SE``` lies within -1 +1
+In this case, a positive sk ew means the data leans towards the left. The standard error for the skew ```skew.2SE``` also lies outside of the range -1 + 1, meaning the result is significant. A positive kurtosis also means the data has heavy tails. However, this result is not significant as the standard error ```kurt.2SE``` lies within -1 +1
+
+
+
+## Multi-variate analysis 
+
+We have just carried out a uni-variate analysis. That is an analysis on one variable. Relationships can be explored between variables by carrying out a multivariate analysis. 
+
+The variables here split between groups of people and households. We can use a ```pairs.panel``` to compare these sets of data and discover correlations 
+
+The data here is suspected to not be normally distributed, hence we'll used ```kendall_tau``` which assumes a non-normal distribution
+```{r}
+wellingborough_variables %>%
+  select(k004, k009, k010, k027, k031, k041)%>%
+  pairs.panels(method = "kendall", 
+               stars = TRUE)
+```
+k010 (Persons aged over 16 who are married or in a registered same-sex civil partnership) has a strong correlation with 
+k031 (Households who own or have shared ownership of property) and k041 (Households with two or more cars or vans). This is understandable. People who have shared ownership of a property will usually (but not always) be in some kind of relationship and may also own a car. k009 (Persons aged over 16 who are single) does not correlate with any other variable very well, possibly for the opposite reasons.
+
+It is appreciated that there is a lot here. Some variables correlate well, others not so much. Next we're going to extract some of the data that shows the strongest correlations and **transform** it 
+
+#### Transform 
+Can we get a better correlation with transforming the data? 
+
+log transform of k027?
+    To get it normally distributed?? 
+      Then compare with k009??
+
+```{r}
+wellingborough_variables %>%
+  ggplot2::ggplot(
+    aes(x = k027))+
+  ggplot2::geom_histogram(binwidth = 15)
+```
+
+
+    
+```{r}
+wellingborough_variables <- wellingborough_variables %>%
+  mutate(log2_k027 = log2(k027)) %>%
+  mutate(log2_k041 = log2(k041)) 
+  
+ggplot2::ggplot(wellingborough_variables,
+    aes(x = log2_k027))+
+  ggplot2::geom_histogram(binwidth = 1)
+
+```
+
+```{r}
+  ggplot2::ggplot(wellingborough_variables,
+    aes(x = log2_k041))+
+  ggplot2::geom_histogram(binwidth = 1)
+```
+We have inf values so this isn't working  
+
+```{r}
+  wellingborough_variables %$%
+  stats::cor.test(log2_k027, log2_k041, method = "pearson")
+```
+
