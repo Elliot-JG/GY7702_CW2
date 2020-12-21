@@ -1,0 +1,25 @@
+---
+title: "GY7702_CW2"
+author: "209040725"
+date: "21/12/2020"
+output: pdf_document
+urlcolor: blue
+---
+
+This document was created to meet the requirements of GY7702 R for Data 
+Science at University of Leicester. It was designed and created in R Markdown, a 
+markup language that allows users to create documents that can be formatted to embed code blocks, code outputs and hyperlinks.
+When the R Markdown file is compiled, the markup language is hidden and the document is displayed in plain text.
+
+This content was created using [R](https://www.r-project.org/), [Rstudio](https://rstudio.com/), [RMarkdown](https://rmarkdown.rstudio.com/) and [GitHub](https://github.com/)
+
+
+The libraries used in this assignment were 
+```{r}
+library(tidyverse)
+library(pastecs)
+library(knitr)
+```
+
+
+## 
