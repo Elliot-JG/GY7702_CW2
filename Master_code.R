@@ -1,6 +1,8 @@
 library(tidyverse)
 library(pastecs)
-
+library(dplyr)
+library(magrittr)
+library(psych)
 
 # Rural Urban Classification (2011)
 # Extract 
@@ -100,7 +102,7 @@ wellingborough %>%
 # normal distribution 
 # Also be aware that this data shows one OAC with a particulary high number of people working part time  
 
-# Characteristics of a data set
+# Characteristics of a data set (k046)
   # A normal distribution test
 
 wellingborough %>%
@@ -122,7 +124,34 @@ wellingborough %>%
       # But the 2SE falls within the range on -1.29 + 1.29 (0.75), so the result isn't significant?? 
   # Data not skewed 
 
+# Now we understand distribution, we can move on to comparing some of these sets
 
 # Relationship between some of these variables
   # If an OA has increased households in detached house, 
   # do those same areas also have more household with two or cars or vans 
+
+# Kendall 
+  # For not normally distributed data 
+  # Where there are ties (some OA's have the same number of vehicle ownership and households with detached housing)
+
+
+wellingborough_households_cars  <-
+wellingborough_variables %$% 
+  stats::cor.test(k031, k041, method = "kendall")
+
+# How much shared variance? 
+shared_var_well_house_cars <- wellingborough_households_cars$estimate^2
+print(shared_var_well_house_cars)
+# A positive correlation, interesting 
+#   Lower than the spearmens rho, because this time we are accounting for ties 
+
+# Comparing all variables
+wellingborough_variables %>%
+  pairs.panels(method = "kendall", 
+               stars = TRUE)
+
+# Correlation between k010 and k031 (73)
+# k010 and k 041 (69)
+
+# Picking out the people and household variables 
+
