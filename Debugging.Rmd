@@ -1,0 +1,369 @@
+---
+title: "Debugging"
+author: "Elliot Greatrix"
+date: "23/12/2020"
+output: pdf_document
+---
+This document was created to meet the requirements of GY7702 R for Data 
+Science at University of Leicester. It was designed and created in R Markdown, a 
+markup language that allows users to create documents that can be formatted to embed code blocks, code outputs and hyperlinks.
+When the R Markdown file is compiled, the markup language is hidden and the document is displayed in plain text.
+
+This content was created using [R](https://www.r-project.org/), [Rstudio](https://rstudio.com/), [RMarkdown](https://rmarkdown.rstudio.com/) and [GitHub](https://github.com/)
+
+
+The libraries used in this assignment were 
+```{r load_libraries, warning=FALSE, message=FALSE}
+library(tidyverse)
+library(pastecs)
+library(knitr)
+library(tinytex)
+library(kableExtra)
+library(gridExtra)
+library(psych)
+library(magrittr)
+```
+
+# Load in the data 
+
+```{r, message=FALSE, warning = FALSE}
+
+# Extract 
+unzip("Data/GY7702_2020-21_Assignment_2--data_pack.zip", exdir = "Data")
+
+# Load
+OAC_2011 <- 
+  readr::read_csv(
+    "Data/GY7702_2020-21_Assignment_2--data_pack/2011_OAC_Raw_kVariables.csv")
+
+OAC_2011_meta <- 
+  readr::read_csv(
+    "Data/GY7702_2020-21_Assignment_2--data_pack/OA11_LSOA11_MSOA11_LAD11_EW_LUv2.csv")
+
+
+```
+
+
+# Option A 
+
+## Joining the data sets
+
+```{r, message = FALSE}
+# Rename the column 'OA11CD' to OA so it matches the same column in OAC_2011 
+OAC_2011_meta <- OAC_2011_meta %>% 
+  dplyr::rename(
+    OA = OA11CD
+  )
+
+# Join OAC_2011 with OAC_2011_meta, based on the OA column for each data frame 
+complete_OAC <- 
+  OAC_2011 %>%
+  dplyr::left_join(.,OAC_2011_meta)
+```
+
+
+## Subsetting 
+* Selecting assigned LAD
+* Selecting the appropriate variables
+  + k004 Persons aged 45 to 64
+  + k009 Persons aged over 16 who are single
+  + k010 Persons aged over 16 who are married or in a registered same-sex civil partnership
+  + k027 Households who live in a detached house or bungalow
+  + k031 Households who own or have shared ownership of property
+  + k041 Households with two or more cars or vans
+  + k046 Employed persons aged between 16 and 74 who work part-time
+
+```{r}
+# Subset data based off LAD11NM = Wellingborough
+wellingborough <- complete_OAC %>%
+  dplyr::filter(LAD11NM == "Wellingborough")
+
+# Select the appropriate variables, based on their 'VariableCode' 
+wellingborough_variables <- wellingborough %>%
+  dplyr::select(k004, k009, k010, k027, k031, k041, k046)
+```
+
+
+# Question A.1 
+Word count (excluding titles = 497)
+
+## Exploring the distribution of Employed persons aged between 16 and 74 who work part-time
+
+The distribution of part-time employed persons (PTEP) throughout 249 output areas (OA's) in the Local Area District (LAD) of Wellingborough was investigated.
+
+#### Basic histogram for visual histogram 
+```{r fig.align="center"}
+k046_hist <- wellingborough %>%
+  ggplot2::ggplot(aes(
+    x = k046))+
+  ggplot2::geom_bar()+
+  scale_x_binned(
+    n.breaks = 5)+
+  xlab("Employed persons (16-74 years old) working part-time")+
+  ylab("Frequency")+
+  geom_vline(aes(
+    xintercept = mean(k046)), 
+    colour="red", 
+    lwd = 1.5)+
+  theme_gray(
+    base_size = 15)
+
+print(k046_hist)
+```
+
+An initial assessment suggests that the distribution of PTEPs throughout Wellingborough is normal. The majority of OA's in Welingborough have 35-45 PTEPS with some having as little as 20 and at least one having >80 PTEPs. A red line also demonstrates the average number of PTEPs per OA (38)
+
+
+
+#### Plotting against normal distribution
+
+The distribution can be further assessed using ```stat_qq``` . This demonstrates where values may lie in the observed data that are affecting the normal distribution. 
+```{r}
+wellingborough %>%
+  ggplot2::ggplot(aes(
+    sample = k046))+
+  ggplot2::stat_qq()+
+  ggplot2::stat_qq_line(
+    aes(
+      colour = "normal distribution"), 
+    show.legend = TRUE, 
+    lwd = 1)+
+  xlab("Theoretical normal distribution")+
+  ylab("Observed value")+
+  theme_gray(
+    base_size = 15) 
+
+```
+
+
+There are an elevated number of PTEPs at the tails of the distribution. That is, a considerable number of OA's have a minimum and maximum number of PTEPs.    
+
+#### Shapiro-Wilk test 
+
+Using a Shapiro-Wilk test we can investigate further if this a normal distribution. 
+```{r}
+  k046 <- wellingborough %>%
+  dplyr::pull(k046)%>%
+ stats::shapiro.test()
+  print(k046)
+```
+
+In the Shapiro-Wilk test, a null hypothesis that the data is normally distributed is set. This is rejected if the p-value <0.01. That is, there is a <1% chance of the data being normally distributed. In this case p < 0.01, so the data is not normally distributed. 
+
+#### Exploring skewness and kurtosis 
+
+The overall shape of the data can be assessed further using ***skewness*** and ***kurtosis***
+
+```{r}
+wellingborough_skew <- 
+  wellingborough %>%
+    dplyr::select(k046)%>%
+    pastecs::stat.desc(basic = FALSE, 
+                       desc = FALSE, 
+                       norm = TRUE)
+  
+kable(wellingborough_skew, format = "latex", booktabs = T) %>%
+kable_styling(latex_options = c("striped", "scale_up"))
+```
+
+A positive skew means the data leans left. The standard error for the skew ```skew.2SE``` lies outside of the range -1 + 1, meaning the result is significant. A positive kurtosis also means the data has heavy tails. However, this result is not significant as ```kurt.2SE``` lies within -1 +1
+
+
+
+## Multi-variate analysis 
+
+We have just carried out a uni-variate analysis. Relationships between variables can be assessed through multivariate analysis. 
+The variables used in this study are split between collecting data on ***persons*** and ***households***. We can use a ```pairs.panel``` to compare these sets of data and discover correlations. 
+The data here is not normally distributed (except k010), hence we will use ```kendall_tau``` which assumes a non-normal distribution and ties. 
+
+```{r}
+wellingborough_norm <- 
+  wellingborough_variables %>%
+  dplyr::select(k004, k009, k027, k031, k041, k046, k010) %>%
+  pastecs::stat.desc(norm = TRUE) 
+
+kable(wellingborough_norm[19:20, ], format = "latex", booktabs = T) %>%
+kable_styling(latex_options = c("striped", "scale_up"))
+```
+
+```{r}
+wellingborough_variables %>%
+  select(k004, k009, k027, k031, k041, k046, k010)%>%
+  pairs.panels(method = "kendall", 
+               stars = TRUE)
+```
+
+
+k010 has a strong correlation with k031 and k041. This is understandable. People who have shared ownership of a property will usually (but not always) be in a relationship and may also own a car. k009 does not positively correlate with any other variable, possibly for the opposite reasons.
+
+
+#### Normalising data 
+
+The amount of people in a relationship (k010) and the amount of households with shared ownership (k031) is highly correlated (0.73). However, k031 gives information on ***households*** while k010 gives information on ***persons***. To aid comparison of the data sets, the z-scores can be taken.
+```{r}
+wellingborough_variables <- 
+  wellingborough_variables %>%
+    mutate(z_k031 = scale(k031)) %>%
+    mutate(z_k010 = scale(k010))
+```
+
+Note, though that z scores conserve the distribution of the data sets. This means that a Shapiro-Wilks test will still fail for k031
+
+```{r}
+wellingborough_variables %>%
+  dplyr::select(z_k031, z_k010)%>%
+  pastecs::stat.desc(norm = TRUE)
+```
+
+This assessment should not usually be carried out on non-normally distributed data. However, for the purpose of this study the new plot of z-scores offers more exploratory analysis. Values on either axis that are close to 0 are close to the mean. OA's that have the average number of people >16 in a relationship, also have the average number of households with shared ownership. 
+
+
+```{r}
+ggplot2::ggplot(
+  wellingborough_variables, 
+    aes(z_k031, 
+        z_k010)
+  )+
+  ggplot2::geom_point()+
+  xlab("households with shared ownership")+
+  ylab("Persons >16 in a relationship")
+```
+
+
+# Question A.2
+## Multiple linear regression
+
+Using the variables in ```wellingborough_variables``` , we are going to predict shared property ownership.
+From the exploratory data analysis, vehicle owvership and persons >16 in a relationship has a strong correlation with shared property ownership, in a given OA. Due to that, those variables will be selected. 
+
+```{r}
+wellingborough_variables %$%
+stats::lm(k031 ~ k010 + k041) -> 
+  shared_prop_model
+
+  summary(shared_prop_model)
+```
+
+
+Overall, with a p <0.01, the performance of the model is good. A high F-statistic [f(2, 246)=543.3] also demonstrates that this model is more effective than if the mean for the outcome variable (shared property ownership) was used in all cases of k041 and k010. An adjusted R square 0.81 also shows that k010 and k041 explain 81% of the variance in shared property ownership.
+
+The coefficient for k010 state that for 1 increase in k010, Persons aged over 16 who are married or in a registered same-sex civil partnership increases by 0.61. Additionally, for 1 increase in k010, households with 2 or more cars increases by 0.17. As this is a multiple linear regression, the model is a plane. That plane intersects the y-axis at 5.51. This value is calculated from the fact that there is an OA with no persons over 16 in a relationship and no households with 2 or more vehicles. From this assessment, it may be assumed that k010 has a larger impact on shared property than k041. 
+
+P values from each variable show good results for k010 (P<0.01), however confidence is exceeded in k041 and in the intercepts which gives the first signs of a faltering model.
+
+The coefficients are useful but they are in different units which can make them difficult to compare
+
+```{r}
+shared_prop_model %>%
+  lm.beta::lm.beta()
+```
+Instead of coefficients representing the change over 1 increase in shared households, ```lm.beta``` standardises the coefficients. This shows that a 1 standard deviation increment in the number of people over 16 (k010), leads to 0.79 more shared properties and 1 standard deviation increment in vehicle ownership leads to 0.12 more shared properties. This gives further credence to the idea that k010 is explaining more of the variance than k041. 
+
+The quality of the coefficients can be assessed using ```stats::confint()``` . This states that the true coefficients of the model occupy this range. If the range is small, the model is robust. 
+
+```{r}
+shared_prop_model%>%
+  stats::confint() 
+```
+These ranges are relatively large, meaning the model cannot be confident on the true value of the coefficients. The quality is significantly higher for k041 though, which has a smaller range. 
+
+We can test for outliers in the model by assessing the standard residuals and the cooks distance. Cook distance assess if there are any values that are having a particulary strong effect on the linear regression model. A threshold for a cooks distance > 1 will be set.  
+
+```{r}
+
+wellingborough_variables %>%
+  mutate(
+    # Take the standardised residuals, from the shared prop model 
+    model_stdres = shared_prop_model %>% 
+      stats::rstandard(),
+    # Take the cook distance from the shared prop model 
+    model_cook_dist = shared_prop_model %>% 
+      stats::cooks.distance()
+  ) -> 
+  
+  # Put those into a new table called shared_prop_output
+  shared_prop_output
+
+# From shared_prop_output, select the outcome variable with the associate residuals and cook distance 
+shared_prop_output %>%
+  dplyr::select(k031, model_stdres, model_cook_dist) %>%
+  # Filter by stdres more than 2.58 and cook distance more than 1 
+  # Cooks distance = if any values are having an influence on the output of the model 
+  dplyr::filter(abs(model_stdres) >2.58 | model_cook_dist >1)
+```
+
+The term ```:filter(abs(model_stdres) >2.58``` is specifying any values above the 99% range of the entire data set. 2 values have a standard residual >2.58. This means these values lie on the .5% upper and .5% lower limits of the data set. In other words, they are outliers.
+
+
+During the building of the model we assume that:
+
+* The relationship is linear 
+* The distribution of standard residuals is normal
+* Standard residuals are not correlated 
+* The relationship between the indenpendent and dependent variables is homoscedastic 
+
+These can be checked througb a number of tests
+
+```{r}
+shared_prop_output %$%
+  stats::shapiro.test(model_stdres)
+```
+A p  > 0.01 states that the distribution of the standard residual is not significant, and therefore normal.
+This can be checked further with a histogram of the standard residuals 
+
+```{r}
+shared_prop_output %>%
+  ggplot2::ggplot(aes(
+    x = model_stdres))+
+  ggplot2::geom_bar()+
+  scale_x_binned(
+    n.breaks = 5)+
+  xlab("Standard residuals")+
+  ylab("Frequency")+
+  theme_gray(
+    base_size = 15)
+
+
+```
+The homoscedasticity can be assessed by plotting the fitted values with the residuals 
+
+
+```{r}
+ggplot2::ggplot(shared_prop_model, 
+                aes(
+                  x = fitted.values(shared_prop_model), 
+                  y = residuals(shared_prop_model)))+
+  ggplot2::geom_point()+
+  ggplot2::geom_smooth(se=FALSE)+
+  xlab("Fitted values")+
+  ylab("Residuals")+
+  theme_gray(
+    base_size = 15)
+```
+
+A general "cloud" of residuals shows that the residuals are not correlated with any aspect of the model. That is, residuals are relatively similar whether the outcome variable is particulary high or low. A relatively straight line demonstrates that the residuals of fitted values can vary throughout the model. 
+
+Further to this discussion, a Breusch-Pagan test demonstrates that the residuals are homoscedastic as the result is not significant  
+
+```{r}
+shared_prop_model %>%
+  lmtest::bptest()
+# Output is not signifcant 
+#   Residual are homoscedastic
+```
+The independence of the residuals can also be tested with a Durbin-Watson test. This shows that the residuals are independent as the result is not significant  
+
+```{r}
+shared_prop_model %>%
+  lmtest::dwtest()
+# Output is not significant 
+#   Standard residuals are independent
+```
+
+Finally we can test the variance inflation factor (ViF). This tests if the variables are independent from one another 
+
+```{r}
+shared_prop_model %>%
+  car::vif()
+```
+The results for this test are relatively high. This means that the variables 'move' together. A change in > 16 year olds in relationships may also affect the homes with 2 or more vehicles. These variables are not independent from one another
