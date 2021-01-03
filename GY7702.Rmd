@@ -22,7 +22,9 @@ library(psych)
 library(magrittr)
 ```
 
-For further information regarding the source code, data and libraries used in this assignment, please see the projects GitHub page (). 
+For further information regarding the source code, data and libraries used in this assignment, please see the projects GitHub page here https://bit.ly/358b5Ym (breaks anonymity).
+
+To preserve anonymity, anonymised screenshots of the Github are attached in an appendix 
 
 ## References
 The Author would like to acknowledge that this document includes teaching materials from Dr Stefano De Sabbato for the module 
@@ -254,7 +256,7 @@ ggplot2::ggplot(
 
 
 # Question A.2
-Word count (excluding titles = 480)
+Word count (excluding titles = 499)
 ## Multiple linear regression
 
 Households with two or more cars or vans (K041) and persons >16 who are married or in a same-sex civil partnership (K010) has a strong correlation with shared property ownership. Due to that, these variables will be selected to predict shared property ownership (k031). 
@@ -270,7 +272,7 @@ summary(shared_prop_model)
 
 With a p <0.01, the performance of the model is good. A high F-statistic [f(2, 246)=543.3] demonstrates this model is more effective than if the mean for the outcome variable was used in all cases of the independent variables. An adjusted R^2 of 0.81 demonstrates that k010 and k041 explain 81% of the variance in k031.
 
-For 1 increase in k010, k031 increases by 0.61. For 1 increase in k010, k031 increases by 0.17. This suggests that k010 has a larger impact on k031. The 3-dimensional model plane intersects the y-axis at 5.51. 
+For 1 increase in k010, k031 increases by 0.61. For 1 increase in k041, k031 increases by 0.17. This suggests that k010 has a larger impact on k031. The 3-dimensional model plane intersects the y-axis at 5.51. 
 
 P-values show good results for k010 (P<0.01), however confidence is exceeded for k041 and the y-intercept which suggests the model is faltering.
 
@@ -380,11 +382,22 @@ shared_prop_model %>%
 ```
 
 4. **Relationship between independent variables is independent** \newline 
-Finally, we can test the variance inflation factor (ViF). This tests if the variables are independent from one another. 
+Finally, we can test the variance inflation factor (VIF). This tests if the variables are independent from one another. 
 ```{r}
 shared_prop_model %>%
   car::vif()
 ```
 
-The results for this test are relatively high. This means that the variables 'move' together. A change in k041 may also affect k010. These variables are not independent from one another.
+The results for this test are relatively high, suggesting multicollinearity. This means that the variables 'move' together. A change in k041 may also affect k010. These variables are not independent from one another.
 
+## Summary
+K10 and k031 can be used to predict k031 to some degree (p<0.01, r^2^ = 0.81). k010 has a larger impact on the model. The model may be improved be selecting independent variables. 
+
+# Appendix 
+
+Github used for this study: \newline
+![](Graphics/Git_hub_1.PNG) \newline
+![](Graphics/Git_hub_2.PNG) \newline
+![](Graphics/Git_hub_3.PNG) \newline
+![](Graphics/Git_hub_4.PNG) \newline
+![](Graphics/Git_hub_5.PNG) \newline
