@@ -30,7 +30,7 @@ The dependencies for the assignment are:
 The data used in this assignment is in [GY7702_data](https://github.com/Elliot-JG/GY7702_assignment/tree/main/GY7702_data). There is 1 .zip file:
 * **GY7702_2020-21_Assignment_2--data_pack.zip**
 
-This repository contains public sector information licensed under the [Open Government Licence v3.0](http://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/)
+This repository contains public sector information licensed under the [Open Government Licence v3.0](http://www.nationalarchives.gov.uk/doc/open-government-licence/version/3/). See also [Gale *et al*., (2016)](http://josis.net/index.php/josis/article/view/232/150) and [Office for National Statistics](https://geoportal.statistics.gov.uk/)
 
 ## :lemon: Usage <a name="usage"></a>
 * To clone this git repository using [Git Bash](https://gitforwindows.org/):
