@@ -24,6 +24,7 @@ library(tinytex)
 library(kableExtra)
 library(gridExtra)
 library(psych)
+library(magrittr)
 ```
 
 # Load in the data 
@@ -191,7 +192,7 @@ wellingborough_variables %>%
   pairs.panels(method = "kendall", 
                stars = TRUE)
 ```
-k010 has a strong correlation with k031 and k041. This is understandable. People who have shared ownership of a property will usually (but not always) be in a relationship and may also own a car. k009 does not reasonably correlate with any other variable, possibly for the opposite reasons.
+k010 has a strong correlation with k031 and k041. This is understandable. People who have shared ownership of a property will usually (but not always) be in a relationship and may also own a car. k009 does not positively correlate with any other variable, possibly for the opposite reasons.
 
 
 #### Normalising data 
@@ -226,8 +227,141 @@ ggplot2::ggplot(
   ylab("Persons >16 in a relationship")
 ```
 
+# Question A.2
+## Multiple linear regression
+
+Using the variables in ```wellingborough_variables``` , we are going to predict shared property ownership.
+From the exploratory data analysis, vehicle owvership and persons >16 in a relationship has a strong correlation with shared property ownership, in a given OA. Due to that, those variables will be selected. 
+
+```{r}
+wellingborough_variables %$%
+stats::lm(k031 ~ k010 + k041) -> 
+  shared_prop_model
+
+  summary(shared_prop_model)
+```
 
 
+Overall, with a p <0.01, the performance of the model is good. A high F-statistic [f(2, 246)=543.3] also demonstrates that this model is more effective than if the mean for the outcome variable (shared property ownership) was used in all cases of k041 and k010. An adjusted R square 0.81 also shows that k010 and k041 explain 81% of the variance in shared property ownership.
 
-    
+The coefficient for k010 state that for 1 increase in k010, Persons aged over 16 who are married or in a registered same-sex civil partnership increases by 0.61. Additionally, for 1 increase in k010, households with 2 or more cars increases by 0.17. As this is a multiple linear regression, the model is a plane. That plane intersects the y-axis at 5.51. This value is calculated from the fact that there is an OA with no persons over 16 in a relationship and no households with 2 or more vehicles. From this assessment, it may be assumed that k010 has a larger impact on shared property than k041. 
+
+P values from each variable show good results for k010 (P<0.01), however confidence is exceeded in k041 and in the intercepts which gives the first signs of a faltering model.
+
+The coefficients are useful but they are in different units which can make them difficult to compare
+
+```{r}
+shared_prop_model %>%
+  lm.beta::lm.beta()
+```
+Instead of coefficients representing the change over 1 increase in shared households, ```lm.beta``` standardises the coefficients. This shows that a 1 standard deviation increment in the number of people over 16 (k010), leads to 0.79 more shared properties and 1 standard deviation increment in vehicle ownership leads to 0.12 more shared properties. This gives further credence to the idea that k010 is explaining more of the variance than k041. 
+
+The quality of the coefficients can be assessed using ```stats::confint()``` . This states that the true coefficients of the model occupy this range. If the range is small, the model is robust. 
+
+```{r}
+shared_prop_model%>%
+  stats::confint() 
+```
+These ranges are relatively large, meaning the model cannot be confident on the true value of the coefficients. The quality is significantly higher for k041 though, which has a smaller range. 
+
+We can test for outliers in the model by assessing the standard residuals and the cooks distance. Cook distance assess if there are any values that are having a particulary strong effect on the linear regression model. A threshold for a cooks distance > 1 will be set.  
+
+```{r}
+
+wellingborough_variables %>%
+  mutate(
+    # Take the standardised residuals, from the shared prop model 
+    model_stdres = shared_prop_model %>% 
+      stats::rstandard(),
+    # Take the cook distance from the shared prop model 
+    model_cook_dist = shared_prop_model %>% 
+      stats::cooks.distance()
+  ) -> 
+  
+  # Put those into a new table called shared_prop_output
+  shared_prop_output
+
+# From shared_prop_output, select the outcome variable with the associate residuals and cook distance 
+shared_prop_output %>%
+  dplyr::select(k031, model_stdres, model_cook_dist) %>%
+  # Filter by stdres more than 2.58 and cook distance more than 1 
+  # Cooks distance = if any values are having an influence on the output of the model 
+  dplyr::filter(abs(model_stdres) >2.58 | model_cook_dist >1)
+```
+
+The term ```:filter(abs(model_stdres) >2.58``` is specifying any values above the 99% range of the entire data set. 2 values have a standard residual >2.58. This means these values lie on the .5% upper and .5% lower limits of the data set. In other words, they are outliers.
+
+
+During the building of the model we assume that:
+
+* The relationship is linear 
+* The distribution of standard residuals is normal
+* Standard residuals are not correlated 
+* The relationship between the indenpendent and dependent variables is homoscedastic 
+
+These can be checked througb a number of tests
+
+```{r}
+shared_prop_output %$%
+  stats::shapiro.test(model_stdres)
+```
+A p  > 0.01 states that the distribution of the standard residual is not significant, and therefore normal.
+This can be checked further with a histogram of the standard residuals 
+
+```{r}
+shared_prop_output %>%
+  ggplot2::ggplot(aes(
+    x = model_stdres))+
+  ggplot2::geom_bar()+
+  scale_x_binned(
+    n.breaks = 5)+
+  xlab("Standard residuals")+
+  ylab("Frequency")+
+  theme_gray(
+    base_size = 15)
+
+
+```
+The homoscedasticity can be assessed by plotting the fitted values with the residuals 
+
+
+```{r}
+ggplot2::ggplot(shared_prop_model, 
+                aes(
+                  x = fitted.values(shared_prop_model), 
+                  y = residuals(shared_prop_model)))+
+  ggplot2::geom_point()+
+  ggplot2::geom_smooth(se=FALSE)+
+  xlab("Fitted values")+
+  ylab("Residuals")+
+  theme_gray(
+    base_size = 15)
+```
+
+A general "cloud" of residuals shows that the residuals are not correlated with any aspect of the model. That is, residuals are relatively similar whether the outcome variable is particulary high or low. A relatively straight line demonstrates that the residuals of fitted values can vary throughout the model. 
+
+Further to this discussion, a Breusch-Pagan test demonstrates that the residuals are homoscedastic as the result is not significant  
+
+```{r}
+shared_prop_model %>%
+  lmtest::bptest()
+# Output is not signifcant 
+#   Residual are homoscedastic
+```
+The independence of the residuals can also be tested with a Durbin-Watson test. This shows that the residuals are independent as the result is not significant  
+
+```{r}
+shared_prop_model %>%
+  lmtest::dwtest()
+# Output is not significant 
+#   Standard residuals are independent
+```
+
+Finally we can test the variance inflation factor (ViF). This tests if the variables are independent from one another 
+
+```{r}
+shared_prop_model %>%
+  car::vif()
+```
+The results for this test are relatively high. This means that the variables 'move' together. A change in > 16 year olds in relationships may also affect the homes with 2 or more vehicles. These variables are not independent from one another
 
