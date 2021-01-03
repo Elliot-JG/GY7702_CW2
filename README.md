@@ -43,11 +43,11 @@ $ git clone https://github.com/Elliot-JG/GY7702_CW2.git
 * **Master_code.R**  
   + In this file you will find general notes and experimentation for the project 
   + Highly commented, raw code
-* **GY7702_Report.Rmd** 
+* **GY7702.Rmd** 
   + An R Markdown version of *Master_code.R*.
   + Contains further analysis of the data such as short paragraphs on what the data tells us  
   + While I am working in *Master_code.R* now, I predict that the work flow will move over mainly to this file 
-* **GY7702_Report.pdf**
-  + A .pdf file created when *GY7702_Report.Rmd* is executed or *knitted*
+* **GY7702.pdf**
+  + A .pdf file created when *GY7702.Rmd* is executed or *knitted*
 
 
