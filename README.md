@@ -37,7 +37,7 @@ This repository contains public sector information licensed under the [Open Gove
 ```r
 $ git clone https://github.com/Elliot-JG/GY7702_CW2.git
 ```
-* Alternatively, press the green button at the top of this page and unzip the folder in an appropriate place  ![](https://github.com/Elliot-JG/GY7702_CW2/blob/main/Graphics/.PNG)
+* Alternatively, press the green button at the top of this page and unzip the folder in an appropriate place  ![](https://github.com/Elliot-JG/GY7702_CW2/blob/main/Graphics/README.PNG)
 
 ## :octopus: Guide to the files <a name="guide"></a>
 * **Master_code.R**  
