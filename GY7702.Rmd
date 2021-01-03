@@ -15,9 +15,7 @@ This content was created using [R](https://www.r-project.org/), [Rstudio](https:
 The libraries used in this assignment were 
 ```{r load_libraries, warning=FALSE, message=FALSE}
 library(tidyverse)
-library(pastecs)
 library(knitr)
-library(tinytex)
 library(kableExtra)
 library(gridExtra)
 library(psych)
@@ -64,9 +62,10 @@ OAC_2011_meta <- OAC_2011_meta %>%
   )
 
 # Join OAC_2011 with OAC_2011_meta, based on the OA column for each data frame 
-complete_OAC <- 
-  OAC_2011 %>%
-  dplyr::left_join(.,OAC_2011_meta)
+complete_OAC <- OAC_2011 %>%
+  dplyr::left_join(
+    .,OAC_2011_meta
+  )
 ```
 
 
@@ -84,11 +83,15 @@ complete_OAC <-
 ```{r}
 # Subset data based off LAD11NM = Wellingborough
 wellingborough <- complete_OAC %>%
-  dplyr::filter(LAD11NM == "Wellingborough")
+  dplyr::filter(
+    LAD11NM == "Wellingborough"
+    )
 
 # Select the appropriate variables, based on their 'VariableCode' 
 wellingborough_variables <- wellingborough %>%
-  dplyr::select(k004, k009, k010, k027, k031, k041, k046)
+  dplyr::select(
+    k004, k009, k010, k027, k031, k041, k046
+    )
 ```
 
 
@@ -147,10 +150,10 @@ There are an elevated number of PTEPs at the tails of the distribution. That is,
 ### Shapiro-Wilk test 
 Using a Shapiro-Wilk test we can investigate further if this a normal distribution. 
 ```{r}
-  k046 <- wellingborough %>%
+k046 <- wellingborough %>%
   dplyr::pull(k046)%>%
- stats::shapiro.test()
-  print(k046)
+stats::shapiro.test()
+print(k046)
 ```
 
 In the Shapiro-Wilk test, a null hypothesis that the data is normally distributed is set. This is rejected if the p-value <0.01. That is, there is a <1% chance of the data being normally distributed. In this case p < 0.01, so the data is not normally distributed. 
@@ -164,7 +167,8 @@ wellingborough_skew <-
     dplyr::select(k046)%>%
     pastecs::stat.desc(basic = FALSE, 
                        desc = FALSE, 
-                       norm = TRUE)
+                       norm = TRUE
+                       )
 ```
 ```{r, echo = FALSE}
 kable(wellingborough_skew, format = "latex", booktabs = T) %>%
@@ -183,8 +187,12 @@ The data here is not normally distributed (except k010), hence we will use ```ke
 ```{r}
 wellingborough_norm <- 
   wellingborough_variables %>%
-  dplyr::select(k004, k009, k027, k031, k041, k046, k010) %>%
-  pastecs::stat.desc(norm = TRUE) 
+  dplyr::select(
+    k004, k009, k027, k031, k041, k046, k010
+    ) %>%
+  pastecs::stat.desc(
+    norm = TRUE
+    ) 
 
 ```
 
@@ -195,9 +203,13 @@ kable_styling(latex_options = c("striped", "scale_up"))
 
 ```{r}
 wellingborough_variables %>%
-  select(k004, k009, k027, k031, k041, k046, k010)%>%
-  pairs.panels(method = "kendall", 
-               stars = TRUE)
+  select(
+    k004, k009, k027, k031, k041, k046, k010
+    )%>%
+  pairs.panels(
+    method = "kendall", 
+    stars = TRUE
+    )
 ```
 
 
@@ -209,16 +221,20 @@ The amount of people in a relationship (k010) and the amount of households with 
 ```{r}
 wellingborough_variables <- 
   wellingborough_variables %>%
-    mutate(z_k031 = scale(k031)) %>%
-    mutate(z_k010 = scale(k010))
+    mutate(
+      z_k031 = scale(k031)
+      ) %>%
+    mutate(
+      z_k010 = scale(k010)
+      )
 ```
 
 Note, though that z scores conserve the distribution of the data sets. This means that a Shapiro-Wilks test will still fail for k031
 
 ```{r, echo = FALSE}
-  z_k031 <- wellingborough_variables %>%
+z_k031 <- wellingborough_variables %>%
   dplyr::pull(z_k031)%>%
- stats::shapiro.test()
+stats::shapiro.test()
 print(z_k031)
 ```
 
@@ -289,16 +305,19 @@ wellingborough_variables %>%
     model_cook_dist = shared_prop_model %>% 
       stats::cooks.distance()
   ) -> 
-  
   # Put those into a new table called shared_prop_output
   shared_prop_output
 
 # From shared_prop_output, select the outcome variable with the associate 
 # residuals and cook distance 
 shared_prop_output %>%
-  dplyr::select(k031, model_stdres, model_cook_dist) %>%
+  dplyr::select(
+    k031, model_stdres, model_cook_dist
+    ) %>%
   # Filter by stdres more than 2.58 and cook distance more than 1 
-  dplyr::filter(abs(model_stdres) >2.58 | model_cook_dist >1)
+  dplyr::filter(
+    abs(model_stdres) >2.58 | model_cook_dist >1
+    )
 ```
 
 ```:filter(abs(model_stdres) >2.58``` is specifying any values above the 99% range of the data set. 2 values exceed this threshold. These values are outliers as they lie on the .5% upper and .5% lower limits of the data set.
