@@ -1,8 +1,3 @@
-# GY7702_CW2
-
-* This project is ONGOING (23/12/2020)
-* Some aspects of this README and the project will be missing 
-
 # GY7702 Assignment 
 
 ## :wave: Introduction <a name="introduction"></a>
